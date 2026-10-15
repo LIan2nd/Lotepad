@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+test-results/
+playwright-report/
+public/fonts/
+*.tsbuildinfo
+*.local
+*.log
