@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: "prompt",
       includeAssets: ["icon.svg", "icon-192.png", "icon-512.png"],
       manifest: {
-        name: "lotepad",
-        short_name: "lotepad",
-        description: "Notes, sketches, and ideas.",
+        name: "Lotepad",
+        short_name: "Lotepad",
+        description: "Your Creative Little Universe",
         theme_color: "#f6f5f1",
         background_color: "#f6f5f1",
         display: "standalone",

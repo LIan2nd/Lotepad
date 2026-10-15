@@ -197,7 +197,8 @@ test("notebook management, drawing persistence, images, page isolation, exports,
   );
   expect(Object.keys(restored.files)).toEqual(Object.keys(first.files));
   const download = page.waitForEvent("download");
-  await page.getByRole("combobox", { name: "Export page" }).selectOption("png");
+  await page.getByRole("button", { name: "Export page", exact: true }).click();
+  await page.getByRole("menuitem", { name: "PNG image", exact: true }).click();
   expect((await download).suggestedFilename()).toBe("First drawing.png");
   await page
     .getByRole("button", { name: "Back to notebooks", exact: true })

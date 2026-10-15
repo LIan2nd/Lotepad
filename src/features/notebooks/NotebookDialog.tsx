@@ -91,7 +91,22 @@ export function NotebookDialog({
         <div className="field">
           <span>Symbol</span>
           <div className="icon-options">
-            {["✿", "✧", "☀", "♡", "☾", "↗", "⌘", "❋"].map((i) => (
+            {[
+              "✿",
+              "✧",
+              "☀",
+              "♡",
+              "☾",
+              "↗",
+              "⌘",
+              "❋",
+              "✦",
+              "❀",
+              "◈",
+              "◌",
+              "✎",
+              "☁",
+            ].map((i) => (
               <button
                 type="button"
                 key={i}

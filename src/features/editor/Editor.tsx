@@ -15,9 +15,7 @@ import {
   Check,
   ChevronDown,
   Copy,
-  Download,
   FileText,
-  Focus,
   Loader2,
   Moon,
   PanelLeftClose,
@@ -28,7 +26,13 @@ import {
   Trash2,
   AlertCircle,
   Settings,
+  Sparkles,
+  Shapes,
+  LayoutTemplate,
+  PenLine,
+  Maximize2,
 } from "lucide-react";
+import type { CreativeMode } from "../creative/types";
 import { db } from "../../lib/database/db";
 import { repository } from "../../lib/database/repository";
 import {
@@ -43,8 +47,13 @@ import type { Notebook, NotePage, PageContent } from "../../types";
 import type { SaveStatus } from "../../lib/database/autosave";
 import type { CanvasActions } from "./Canvas";
 import { useApp } from "../../stores/app";
+import { ExportMenu } from "./ExportMenu";
 const Canvas = lazy(() =>
-  import("./Canvas").then((m) => ({ default: m.Canvas })),
+  import("./Canvas").then(async (m) => {
+    const { prepareCreativeFonts } = await import("../creative/fonts");
+    await prepareCreativeFonts();
+    return { default: m.Canvas };
+  }),
 );
 export function Editor({
   notebookId,
@@ -80,7 +89,8 @@ export function Editor({
   const [sidebar, setSidebar] = useState(
     () => matchMedia("(min-width: 751px)").matches,
   );
-  const [focus, setFocus] = useState(false);
+  const [mode, setMode] = useState<CreativeMode>("write");
+  const focus = mode === "focus";
   const [newPage, setNewPage] = useState(false);
   const [renaming, setRenaming] = useState<NotePage | null>(null);
   const [deleting, setDeleting] = useState<NotePage | null>(null);
@@ -220,30 +230,16 @@ export function Editor({
           )}
         </div>
         <div className="editor-header-actions">
-          <div className="export-control">
-            <Download size={16} />
-            <select
-              aria-label="Export page"
-              value=""
-              disabled={!loaded}
-              onChange={(e) => {
-                const format = e.target.value as "png" | "svg" | "json";
-                void perform(async () => {
-                  if (!actions.current)
-                    throw new Error("The editor is still loading.");
-                  await actions.current.export(format);
-                }, "Your export is ready");
-              }}
-            >
-              <option value="" disabled>
-                Export
-              </option>
-              <option value="png">PNG image</option>
-              <option value="svg">SVG image</option>
-              <option value="json">Editable Excalidraw</option>
-            </select>
-            <ChevronDown size={12} />
-          </div>
+          <ExportMenu
+            disabled={!loaded}
+            onExport={(format) => {
+              void perform(async () => {
+                if (!actions.current)
+                  throw new Error("The editor is still loading.");
+                await actions.current.export(format);
+              }, "Your export is ready");
+            }}
+          />
           <button
             className="icon-button"
             title="Toggle theme"
@@ -251,15 +247,6 @@ export function Editor({
             onClick={onTheme}
           >
             {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
-          </button>
-          <button
-            className={`icon-button ${focus ? "active" : ""}`}
-            title="Distraction-free mode"
-            aria-label="Distraction-free mode"
-            aria-pressed={focus}
-            onClick={() => setFocus(!focus)}
-          >
-            <Focus size={19} />
           </button>
           <button
             className="icon-button"
@@ -276,6 +263,81 @@ export function Editor({
           </button>
         </div>
       </header>
+      <div className="studio-toolbar">
+        <div className="studio-mode-tabs" aria-label="Workspace mode">
+          {(!sidebar || focus) && (
+            <button
+              className="studio-pages-toggle"
+              title="Show page sidebar"
+              aria-label="Show page sidebar"
+              onClick={() => {
+                setSidebar(true);
+                if (focus) setMode("write");
+              }}
+            >
+              <PanelLeftOpen size={17} />
+            </button>
+          )}
+          {(
+            [
+              { id: "write", name: "Write", icon: PenLine },
+              { id: "create", name: "Create", icon: Shapes },
+              { id: "focus", name: "Focus", icon: Maximize2 },
+            ] as const
+          ).map((m) => (
+            <button
+              key={m.id}
+              className={mode === m.id ? "active" : ""}
+              aria-pressed={mode === m.id}
+              onClick={() => {
+                setMode(m.id);
+                if (m.id === "create" && innerWidth < 1500) setSidebar(false);
+              }}
+            >
+              <m.icon size={15} />
+              {m.name}
+            </button>
+          ))}
+        </div>
+        {mode !== "focus" && (
+          <div className="studio-toolbar-actions">
+            <button
+              aria-label="Creative Library"
+              title="Creative Library"
+              disabled={!loaded}
+              onClick={() => {
+                if (innerWidth < 1500) setSidebar(false);
+                actions.current?.openLibrary();
+              }}
+            >
+              <Shapes size={16} />
+              <span>Creative Library</span>
+            </button>
+            <button
+              aria-label="Templates"
+              title="Templates"
+              disabled={!loaded}
+              onClick={() => {
+                if (innerWidth < 1500) setSidebar(false);
+                actions.current?.openLibrary("templates");
+              }}
+            >
+              <LayoutTemplate size={16} />
+              <span>Templates</span>
+            </button>
+            <button
+              aria-label="Inspire Me"
+              title="Inspire Me"
+              className="inspire-button"
+              disabled={!loaded}
+              onClick={() => actions.current?.inspire()}
+            >
+              <Sparkles size={16} />
+              <span>Inspire Me</span>
+            </button>
+          </div>
+        )}
+      </div>
       <div className="editor-body">
         {sidebar && !focus && (
           <aside className="page-sidebar">
@@ -370,19 +432,6 @@ export function Editor({
           </aside>
         )}
         <main className="editor-workspace">
-          {(!sidebar || focus) && (
-            <button
-              className="icon-button show-page-sidebar"
-              aria-label="Show page sidebar"
-              title="Show page sidebar"
-              onClick={() => {
-                setSidebar(true);
-                setFocus(false);
-              }}
-            >
-              <PanelLeftOpen size={18} />
-            </button>
-          )}
           {error ? (
             <div className="empty-state">
               <AlertCircle />
@@ -411,6 +460,8 @@ export function Editor({
                 theme={theme}
                 onStatus={setStatus}
                 onActions={registerActions}
+                mode={mode}
+                onModeChange={setMode}
               />
             </Suspense>
           ) : activePages?.length === 0 ? (

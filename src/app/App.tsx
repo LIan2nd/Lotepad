@@ -133,7 +133,7 @@ export function App() {
       <div className="app-loading">
         <BookOpen size={34} />
         <h1>
-          lotepad<span>.</span>
+          Lotepad<span>.</span>
         </h1>
         <Loader2 className="spin" size={20} />
       </div>

@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { BrandMark } from "../../components/BrandMark";
+import { templateThumbnail } from "../creative/templateCatalog";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   ArrowDownAZ,
   ArrowUpRight,
   BookOpen,
-  ChevronDown,
   Clock3,
   Copy,
   FileText,
@@ -21,14 +22,19 @@ import {
   Undo2,
   Pencil,
   X,
+  Sparkles,
 } from "lucide-react";
 import { db } from "../../lib/database/db";
 import { repository } from "../../lib/database/repository";
 import { useApp } from "../../stores/app";
+import { Select } from "../../components/Select";
 import { Confirm, Menu, perform } from "../../components/ui";
 import { NotebookDialog } from "../notebooks/NotebookDialog";
 import type { Notebook, NotePage } from "../../types";
 const emptyBooks: Notebook[] = [];
+const StartCreativeDialog = lazy(
+  () => import("../creative/StartCreativeDialog"),
+);
 export function Dashboard({
   onOpen,
   onSettings,
@@ -42,6 +48,7 @@ export function Dashboard({
   const [list, setList] = useState(false);
   const [dialog, setDialog] = useState<Notebook | "new" | null>(null);
   const [deleting, setDeleting] = useState<Notebook | null>(null);
+  const [creativeStart, setCreativeStart] = useState(false);
   const books = useLiveQuery(() => db.notebooks.toArray(), []) ?? emptyBooks;
   const pages = useLiveQuery(() => db.pages.toArray(), []) ?? [];
   const pageCount = (bookId: string) =>
@@ -53,7 +60,9 @@ export function Dashboard({
         e.key === "/" &&
         !(
           e.target instanceof HTMLElement &&
-          e.target.closest("input,textarea,select,[contenteditable]")
+          e.target.closest(
+            'input,textarea,select,[contenteditable],[role="combobox"],[role="listbox"]',
+          )
         )
       ) {
         e.preventDefault();
@@ -142,12 +151,11 @@ export function Dashboard({
             }}
           >
             <span className="brand-mark">
-              <BookOpen size={23} />
-              <i />
+              <BrandMark />
             </span>
             {!collapsed && (
               <span>
-                lotepad<span className="brand-dot">.</span>
+                Lotepad<span className="brand-dot">.</span>
               </span>
             )}
           </a>
@@ -242,18 +250,17 @@ export function Dashboard({
               )}
             </label>
             <div className="library-tools-right">
-              <label className="sort-select">
-                <ArrowDownAZ size={16} />
-                <select
-                  aria-label="Sort notebooks"
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value)}
-                >
-                  <option value="modified">Last edited</option>
-                  <option value="name">Name A–Z</option>
-                </select>
-                <ChevronDown size={13} />
-              </label>
+              <Select
+                label="Sort notebooks"
+                compact
+                icon={<ArrowDownAZ size={16} />}
+                value={sort}
+                onValueChange={setSort}
+                options={[
+                  { value: "modified", label: "Last edited" },
+                  { value: "name", label: "Name A–Z" },
+                ]}
+              />
               <div className="view-toggle">
                 <button
                   aria-label="Grid view"
@@ -346,7 +353,7 @@ export function Dashboard({
                         <span className="cover-symbol">{book.icon}</span>
                         <span className="cover-title">{book.title}</span>
                         <span className="cover-rule" />
-                        <span className="cover-brand">lotepad</span>
+                        <span className="cover-brand">Lotepad</span>
                         <span className="book-elastic" />
                       </button>
                       <button
@@ -489,8 +496,39 @@ export function Dashboard({
               )}
             </section>
           )}
+          {view === "all" && !query && (
+            <section className="dashboard-creative">
+              <div className="dashboard-template-stack" aria-hidden="true">
+                <img src={templateThumbnail("creative-journal")} alt="" />
+                <img src={templateThumbnail("organized-chaos")} alt="" />
+              </div>
+              <div>
+                <span className="creative-eyebrow">
+                  A DIFFERENT KIND OF PAGE
+                </span>
+                <h2>Make room for a little creativity.</h2>
+                <p>Paper layers, photo frames, and editable layouts.</p>
+              </div>
+              <button
+                className="button secondary"
+                onClick={() => setCreativeStart(true)}
+              >
+                <Sparkles size={16} />
+                Browse templates
+              </button>
+            </section>
+          )}
         </div>
       </main>
+      {creativeStart && (
+        <Suspense fallback={null}>
+          <StartCreativeDialog
+            notebooks={active}
+            onClose={() => setCreativeStart(false)}
+            onOpen={onOpen}
+          />
+        </Suspense>
+      )}
       {dialog && (
         <NotebookDialog
           book={dialog === "new" ? undefined : dialog}

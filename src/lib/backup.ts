@@ -1,6 +1,12 @@
 import JSZip from "jszip";
 import { repository, type Repository } from "./database/repository";
 import { defaultSettings, type BackupData, type AppSettings } from "../types";
+import {
+  readCreativePreferences,
+  saveCreativePreferences,
+} from "../features/creative/preferences";
+import { validateCreativePreferences } from "../features/creative/palettes";
+import { defaultCreativePreferences } from "../features/creative/types";
 export function download(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -56,7 +62,9 @@ export function validateBackup(value: unknown): BackupData {
         bookIds.has(page.notebookId) &&
         typeof page.title === "string" &&
         ["paper", "infinite"].includes(String(page.mode)) &&
-        ["blank", "ruled", "grid", "dotted"].includes(String(page.paper)) &&
+        ["blank", "ruled", "grid", "dotted", "vintage"].includes(
+          String(page.paper),
+        ) &&
         ["A4", "A4 landscape", "A5", "Letter"].includes(String(page.size)) &&
         typeof page.paperColor === "string" &&
         /^#[0-9a-f]{6}$/i.test(page.paperColor) &&
@@ -126,7 +134,7 @@ export function validateBackup(value: unknown): BackupData {
     record(value.settings) &&
       ["light", "dark", "system"].includes(String(value.settings.theme)) &&
       ["paper", "infinite"].includes(String(value.settings.defaultMode)) &&
-      ["blank", "ruled", "grid", "dotted"].includes(
+      ["blank", "ruled", "grid", "dotted", "vintage"].includes(
         String(value.settings.defaultPaper),
       ) &&
       typeof value.settings.paperColor === "string" &&
@@ -137,6 +145,7 @@ export function validateBackup(value: unknown): BackupData {
     "Invalid backup settings.",
   );
   // Normalize legacy backups to the current brand without changing their data.
+  if (value.creative !== undefined) validateCreativePreferences(value.creative);
   return { ...value, app: "lotepad" } as unknown as BackupData;
 }
 export async function exportBackup(repo: Repository = repository) {
@@ -152,6 +161,7 @@ export async function exportBackup(repo: Repository = repository) {
       pages: await database.pages.toArray(),
       contents: await database.contents.toArray(),
       settings: await repo.settings(),
+      creative: await readCreativePreferences(repo),
     }),
   );
   const zip = new JSZip();
@@ -211,6 +221,42 @@ export async function importBackup(
     await database.pages.bulkAdd(data.pages);
     await database.contents.bulkAdd(data.contents);
     await database.meta.put({ key: "initialized", value: "1" });
+    if (mode === "replace")
+      await saveCreativePreferences(
+        data.creative ?? structuredClone(defaultCreativePreferences),
+        repo,
+      );
+    else if (data.creative) {
+      const current = await readCreativePreferences(repo);
+      const imported = data.creative;
+      const custom = imported.customPalettes.map((p) => {
+        const existing = current.customPalettes.find((c) => c.id === p.id);
+        if (existing && JSON.stringify(existing) !== JSON.stringify(p)) {
+          const id = `custom-${crypto.randomUUID()}`;
+          return { ...p, id };
+        }
+        return p;
+      });
+      await saveCreativePreferences(
+        {
+          ...current,
+          favorites: [
+            ...new Set([...current.favorites, ...imported.favorites]),
+          ],
+          recent: [...new Set([...current.recent, ...imported.recent])].slice(
+            0,
+            30,
+          ),
+          customPalettes: [
+            ...current.customPalettes,
+            ...custom.filter(
+              (p) => !current.customPalettes.some((c) => c.id === p.id),
+            ),
+          ],
+        },
+        repo,
+      );
+    }
     if (!(await database.preferences.get("settings")))
       await repo.updateSettings({
         ...defaultSettings,

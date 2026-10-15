@@ -1,6 +1,7 @@
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type { AppState, BinaryFiles } from "@excalidraw/excalidraw/types";
-export type PaperType = "blank" | "ruled" | "grid" | "dotted";
+import type { CreativePreferences } from "../features/creative/types";
+export type PaperType = "blank" | "ruled" | "grid" | "dotted" | "vintage";
 export type PaperSize = "A4" | "A4 landscape" | "A5" | "Letter";
 export type PageMode = "paper" | "infinite";
 export interface Notebook {
@@ -49,6 +50,7 @@ export interface BackupData {
   pages: NotePage[];
   contents: PageContent[];
   settings: AppSettings;
+  creative?: CreativePreferences;
 }
 export const defaultSettings: AppSettings = {
   theme: "system",

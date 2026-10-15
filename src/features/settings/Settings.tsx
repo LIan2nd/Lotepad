@@ -25,6 +25,7 @@ import {
   type PageMode,
 } from "../../types";
 import { useApp } from "../../stores/app";
+import { Select } from "../../components/Select";
 export function Settings({
   onClose,
   onSettingsChange,
@@ -113,30 +114,33 @@ export function Settings({
             <div className="field-row">
               <label className="field">
                 Default page mode
-                <select
+                <Select
+                  label="Default page mode"
                   value={settings.defaultMode}
-                  onChange={(e) =>
-                    void update({ defaultMode: e.target.value as PageMode })
+                  onValueChange={(value) =>
+                    void update({ defaultMode: value as PageMode })
                   }
-                >
-                  <option value="paper">Paper notes</option>
-                  <option value="infinite">Infinite whiteboard</option>
-                </select>
+                  options={[
+                    { value: "paper", label: "Paper notes" },
+                    { value: "infinite", label: "Infinite whiteboard" },
+                  ]}
+                />
               </label>
               <label className="field">
                 Default paper
-                <select
+                <Select
+                  label="Default paper"
                   value={settings.defaultPaper}
-                  onChange={(e) =>
-                    void update({ defaultPaper: e.target.value as PaperType })
+                  onValueChange={(value) =>
+                    void update({ defaultPaper: value as PaperType })
                   }
-                >
-                  {["blank", "ruled", "grid", "dotted"].map((t) => (
-                    <option key={t} value={t}>
-                      {t[0].toUpperCase() + t.slice(1)}
-                    </option>
-                  ))}
-                </select>
+                  options={["blank", "ruled", "grid", "dotted", "vintage"].map(
+                    (t) => ({
+                      value: t,
+                      label: t[0].toUpperCase() + t.slice(1),
+                    }),
+                  )}
+                />
               </label>
             </div>
             <div className="field-row">
@@ -150,18 +154,17 @@ export function Settings({
               </label>
               <label className="field">
                 Starting zoom
-                <select
-                  value={settings.defaultZoom}
-                  onChange={(e) =>
-                    void update({ defaultZoom: Number(e.target.value) })
+                <Select
+                  label="Starting zoom"
+                  value={String(settings.defaultZoom)}
+                  onValueChange={(value) =>
+                    void update({ defaultZoom: Number(value) })
                   }
-                >
-                  {[0.5, 0.7, 1, 1.5].map((v) => (
-                    <option key={v} value={v}>
-                      {v * 100}%
-                    </option>
-                  ))}
-                </select>
+                  options={[0.5, 0.7, 1, 1.5].map((v) => ({
+                    value: String(v),
+                    label: `${v * 100}%`,
+                  }))}
+                />
               </label>
             </div>
           </section>
@@ -246,9 +249,9 @@ export function Settings({
             </div>
             <div>
               <h3>
-                lotepad <span>v1.0.0</span>
+                Lotepad <span>v1.1.0</span>
               </h3>
-              <p>Notes & sketches.</p>
+              <p>Your Creative Little Universe</p>
             </div>
             <p className="licenses">
               <a

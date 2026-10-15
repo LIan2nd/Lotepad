@@ -358,21 +358,6 @@ input::placeholder {
   align-items: center;
   gap: 17px;
 }
-.sort-select {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: #8d8695;
-}
-.sort-select select {
-  font-size: 11px;
-  appearance: none;
-  background: none;
-  border: 0;
-  padding-right: 4px;
-  color: var(--muted);
-  cursor: pointer;
-}
 .view-toggle {
   display: flex;
   align-items: center;
@@ -870,8 +855,7 @@ input::placeholder {
   flex: 1;
   min-width: 0;
 }
-.field input:not([type="color"]),
-.field select {
+.field input:not([type="color"]) {
   height: 42px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -1317,14 +1301,6 @@ input::placeholder {
   border-radius: 7px;
   color: var(--muted);
   margin-right: 10px;
-}
-.export-control select {
-  appearance: none;
-  background: none;
-  border: 0;
-  font-size: 11px;
-  color: var(--text);
-  cursor: pointer;
 }
 .editor-body {
   display: flex;
@@ -1864,9 +1840,6 @@ input::placeholder {
   }
   .export-control > svg:first-child {
     display: none;
-  }
-  .export-control select {
-    font-size: 10px;
   }
   .page-sidebar {
     width: 185px;
