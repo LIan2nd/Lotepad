@@ -67,9 +67,10 @@ export function PageDialog({
                 await import("../creative/fonts");
               await prepareCreativeFonts();
             }
-            await repository.database
-              .transaction("rw", repository.database.tables, async () => {
-                const page = await repository.createPage(notebookId, {
+            await repository
+              .createPage(
+                notebookId,
+                {
                   title:
                     title ||
                     (template
@@ -79,27 +80,25 @@ export function PageDialog({
                   paper,
                   size,
                   paperColor: color,
-                });
-                if (template) {
-                  const initial = initializePaper(
-                    page,
-                    await repository.loadContent(page.id),
-                  );
-                  const dimensions = paperDimensions[page.size];
-                  const scene = templateForPaper(
-                    buildTemplate(template),
-                    dimensions[0],
-                    dimensions[1],
-                  );
-                  await repository.saveContent({
-                    ...initial,
-                    elements: [...initial.elements, ...scene.elements],
-                    files: { ...initial.files, ...scene.files },
-                    initialized: true,
-                  });
-                }
-                return page;
-              })
+                },
+                template
+                  ? (page, content) => {
+                      const initial = initializePaper(page, content);
+                      const dimensions = paperDimensions[page.size];
+                      const scene = templateForPaper(
+                        buildTemplate(template),
+                        dimensions[0],
+                        dimensions[1],
+                      );
+                      return {
+                        ...initial,
+                        elements: [...initial.elements, ...scene.elements],
+                        files: { ...initial.files, ...scene.files },
+                        initialized: true,
+                      };
+                    }
+                  : undefined,
+              )
               .then(onCreated);
           })()
             .then(onClose)

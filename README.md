@@ -2,6 +2,25 @@
 
 A creative notebook and scrapbook studio for Windows touchscreen laptops, tablets, and desktops. Keep handwritten notes, layer papers and photos, and compose editable layouts on paper or an infinite canvas.
 
+## Desktop · 1.2
+
+Lotepad includes the Windows desktop application and a separate web build. React and the existing creative editor talk through typed Tauri commands to one Rust/rusqlite repository on desktop. SQLite is the desktop store; the web build retains IndexedDB and PWA support. The desktop migration was developed on `tauri-sqlite` and merged into `main`. The original browser release is preserved on `web-legacy` at `8ca9932`.
+
+The desktop database is `lotepad.db` in Tauri's application data folder for `com.lotepad.desktop` (normally `%APPDATA%\com.lotepad.desktop`). Settings → Data & Storage shows the actual path, opens its folder, verifies integrity, and exports **SQL Dump (.sql)**, **SQLite Snapshot (.db)**, or **Portable Backup (.zip)** through native file dialogs. Media is stored in SQLite BLOBs. Autosave uses serialized writes, optimistic page revisions, a 600 ms debounce, a five-second maximum wait, and a flush before navigation or native close.
+
+To transfer browser notes, keep their original browser origin/profile, open Settings → **Export for Lotepad Desktop**, then choose **Import notes or restore backup** in desktop Settings. The wizard validates checksums and media, previews counts, imports atomically, and verifies scene reconstruction and foreign keys. Merge preserves existing content, remaps collisions, and detects repeated archives. Replacement requires confirmation and creates a recovery snapshot first. The browser database is left untouched; actual user notes are never migrated automatically.
+
+Install Rust stable (MSVC), Visual Studio C++ Build Tools/Windows SDK, and WebView2, then use:
+
+```powershell
+npm.cmd install
+npm.cmd run tauri dev
+npm.cmd run tauri build
+npm.cmd run test:rust
+```
+
+Desktop development uses port **1420** with strict port selection. The production executable embeds its frontend, fonts, and creative assets; no Vite or Node server is needed after installation. The installer target is NSIS for the current Windows user. See [MIGRATION_TO_DESKTOP.md](MIGRATION_TO_DESKTOP.md) for the schema, archive format, backups, recovery, verification results, and build artifacts, and [STORAGE_AUDIT.md](STORAGE_AUDIT.md) for the original storage audit.
+
 ## Creative Scrapbook Studio · 1.1
 
 The original notebook, page, drawing, image, autosave, backup, and PWA workflows remain available. Switch between **Write**, **Create**, and **Focus** in the editor toolbar. All modes use the same Excalidraw scene; changing mode only changes the interface.
@@ -20,7 +39,7 @@ Four scrapbook layouts are available from New page, the editor's Templates butto
 
 Paper creation also offers vintage grain and coordinated white, cream, lavender, sage, parchment, and dark color presets. Dark paper starts with a light drawing color.
 
-## Compatibility strategy
+## Browser compatibility strategy
 
 This release does **not** rename the `inknest` database, increment its schema version, clear records, or change the PWA start URL. New library preferences use a versioned record in the existing `meta` table. Existing notebook/page records and scene/image serialization retain their formats. Optional paper-type values are validated while previous values remain supported.
 
@@ -121,4 +140,4 @@ Suggested next milestone: validate the studio on the target Windows pen/touch ha
 
 ## License
 
-lotepad source is MIT-licensed; see `LICENSE`. Bundled dependency license texts are generated in `public/THIRD_PARTY_NOTICES.txt`. Font license files are preserved beside the local Excalidraw fonts. Third-party packages retain their own licenses.
+lotepad source is MIT-licensed; see `LICENSE`. Bundled JavaScript dependency license texts are generated in `public/THIRD_PARTY_NOTICES.txt`; Rust dependency texts are in `public/RUST_THIRD_PARTY_NOTICES.txt`. Font license files are preserved beside the local Excalidraw fonts. Third-party packages retain their own licenses.

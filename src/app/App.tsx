@@ -8,7 +8,7 @@ import {
 } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { BookOpen, Loader2, RefreshCw } from "lucide-react";
-import { db } from "../lib/database/db";
+import { isDesktop, hasNativeBridge } from "../lib/desktop/runtime";
 import { repository } from "../lib/database/repository";
 import { Dashboard } from "../features/dashboard/Dashboard";
 import { Settings } from "../features/settings/Settings";
@@ -36,6 +36,40 @@ export function App() {
   );
   const flush = useRef<(() => Promise<void>) | null>(null);
   const notify = useApp((s) => s.notify);
+  useEffect(() => {
+    if (!isDesktop || !hasNativeBridge()) return;
+    let active = true,
+      stop: (() => void) | undefined,
+      closing = false;
+    void import("@tauri-apps/api/window")
+      .then(async ({ getCurrentWindow }) => {
+        const window = getCurrentWindow();
+        const dispose = await window.onCloseRequested(async (event) => {
+          event.preventDefault();
+          if (closing) return;
+          closing = true;
+          try {
+            await flush.current?.();
+            await window.destroy();
+          } catch (error) {
+            notify(`Close cancelled: ${String(error)}`, true);
+            closing = false;
+          }
+        });
+        if (active) stop = dispose;
+        else dispose();
+      })
+      .catch((error) =>
+        notify(
+          `Native close protection could not start: ${String(error)}`,
+          true,
+        ),
+      );
+    return () => {
+      active = false;
+      stop?.();
+    };
+  }, [notify]);
   const {
     needRefresh: [needRefresh],
     updateServiceWorker,
@@ -47,9 +81,9 @@ export function App() {
       .then(async (s) => {
         setSettings(s);
         if (!location.hash) {
-          const last = await db.meta.get("lastRoute");
-          if (last?.value) {
-            history.replaceState(null, "", `#${last.value}`);
+          const last = await repository.getMeta("lastRoute");
+          if (last) {
+            history.replaceState(null, "", `#${last}`);
             setRoute(readRoute());
           }
         }
@@ -83,7 +117,7 @@ export function App() {
         if (book) params.set("notebook", book);
         if (page) params.set("page", page);
         const hash = params.toString();
-        await db.meta.put({ key: "lastRoute", value: hash });
+        await repository.setMeta("lastRoute", hash);
         history.pushState(null, "", hash ? `#${hash}` : location.pathname);
         setRoute({ book, page });
       } catch (e) {
@@ -120,9 +154,17 @@ export function App() {
     return (
       <div className="fatal-state">
         <BookOpen />
-        <h1>Your notebook needs browser storage</h1>
+        <h1>
+          {isDesktop
+            ? "Lotepad could not open its database"
+            : "Your notebook needs browser storage"}
+        </h1>
         <p>{error}</p>
-        <p>Allow storage for this site, then reload to try again.</p>
+        <p>
+          {isDesktop
+            ? "Your data has not been replaced. Check the error above, then retry."
+            : "Allow storage for this site, then reload to try again."}
+        </p>
         <button className="button primary" onClick={() => location.reload()}>
           Try again
         </button>
@@ -170,6 +212,9 @@ export function App() {
         <Settings
           onClose={() => setSettingsOpen(false)}
           onSettingsChange={setSettings}
+          onBeforeBackup={async () => {
+            await flush.current?.();
+          }}
           onBeforeRestore={async () => {
             await flush.current?.();
             await navigate();

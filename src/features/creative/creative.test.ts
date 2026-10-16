@@ -4,7 +4,7 @@ import { assets, assetPreview } from "./registry";
 import { palettes, readableInk, validateCreativePreferences } from "./palettes";
 import { defaultCreativePreferences } from "./types";
 import { InkDatabase } from "../../lib/database/db";
-import { Repository } from "../../lib/database/repository";
+import { Repository } from "../../lib/database/legacyRepository";
 import {
   readCreativePreferences,
   saveCreativePreferences,

@@ -29,6 +29,7 @@ export interface NotePage {
   deletedAt: number | null;
 }
 export interface PageContent {
+  revision?: number;
   pageId: string;
   elements: readonly ExcalidrawElement[];
   appState: Partial<AppState>;
@@ -51,6 +52,15 @@ export interface BackupData {
   contents: PageContent[];
   settings: AppSettings;
   creative?: CreativePreferences;
+  metadata?: { key: string; value: string }[];
+  preferences?: { key: string; value: unknown }[];
+  importHistory?: {
+    archiveFingerprint: string;
+    sourceFormat: string;
+    status: string;
+    importedAt: number;
+    summary: unknown;
+  }[];
 }
 export const defaultSettings: AppSettings = {
   theme: "system",
