@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { BrandMark } from "../../components/BrandMark";
 import { templateThumbnail } from "../creative/templateCatalog";
-import { useLiveQuery } from "dexie-react-hooks";
+import { useQuery } from "../../lib/database/useQuery";
 import {
   ArrowDownAZ,
   ArrowUpRight,
@@ -24,7 +24,6 @@ import {
   X,
   Sparkles,
 } from "lucide-react";
-import { db } from "../../lib/database/db";
 import { repository } from "../../lib/database/repository";
 import { useApp } from "../../stores/app";
 import { Select } from "../../components/Select";
@@ -49,8 +48,8 @@ export function Dashboard({
   const [dialog, setDialog] = useState<Notebook | "new" | null>(null);
   const [deleting, setDeleting] = useState<Notebook | null>(null);
   const [creativeStart, setCreativeStart] = useState(false);
-  const books = useLiveQuery(() => db.notebooks.toArray(), []) ?? emptyBooks;
-  const pages = useLiveQuery(() => db.pages.toArray(), []) ?? [];
+  const books = useQuery(() => repository.listNotebooks(), []) ?? emptyBooks;
+  const pages = useQuery(() => repository.listPages(), []) ?? [];
   const pageCount = (bookId: string) =>
     pages.filter((p) => p.notebookId === bookId && !p.deletedAt).length;
   const search = useRef<HTMLInputElement>(null);

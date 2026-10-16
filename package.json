@@ -1,6 +1,6 @@
 {
   "name": "lotepad",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,14 +11,23 @@
     "typecheck": "tsc -b",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:dev": "playwright test --config playwright.dev.config.ts",
     "postinstall": "node scripts/assets.mjs && node scripts/notices.mjs",
-    "format": "prettier --write src tests *.ts *.json *.js"
+    "format": "prettier --write src tests *.ts *.json *.js",
+    "dev:web": "vite --host 0.0.0.0",
+    "dev:desktop": "vite --mode desktop --host 127.0.0.1 --port 1420 --strictPort",
+    "build:web": "tsc -b && vite build --mode web",
+    "build:desktop": "tsc -b && vite build --mode desktop",
+    "tauri": "node scripts/tauri.mjs",
+    "test:rust": "node scripts/rust.mjs test --manifest-path src-tauri/Cargo.toml --no-default-features",
+    "test:native": "node scripts/native-smoke.mjs"
   },
   "dependencies": {
     "@excalidraw/excalidraw": "0.18.1",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-select": "^2.4.1",
+    "@tauri-apps/api": "^2.12.4",
     "dexie": "^4.2.1",
     "dexie-react-hooks": "^4.2.0",
     "fractional-indexing": "^3.2.0",
@@ -32,6 +41,7 @@
     "@eslint/js": "^9.39.0",
     "@playwright/test": "^1.56.0",
     "@tailwindcss/vite": "^4.1.17",
+    "@tauri-apps/cli": "^2.12.3",
     "@types/node": "^24.10.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",

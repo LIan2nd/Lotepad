@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { beforeEach, afterEach, describe, expect, it } from "vitest";
 import { InkDatabase } from "./db";
-import { Repository } from "./repository";
+import { Repository } from "./legacyRepository";
 import { defaultSettings } from "../../types";
 import {
   exportBackup,

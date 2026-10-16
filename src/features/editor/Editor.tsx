@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
+import { useQuery } from "../../lib/database/useQuery";
 import {
   ArrowLeft,
   ArrowDown,
@@ -33,7 +33,6 @@ import {
   Maximize2,
 } from "lucide-react";
 import type { CreativeMode } from "../creative/types";
-import { db } from "../../lib/database/db";
 import { repository } from "../../lib/database/repository";
 import {
   Confirm,
@@ -72,14 +71,11 @@ export function Editor({
   onTheme: () => void;
   onSettings: () => void;
 }) {
-  const book = useLiveQuery(
-    async () => (await db.notebooks.get(notebookId)) ?? null,
+  const book = useQuery(
+    async () => (await repository.getNotebook(notebookId)) ?? null,
     [notebookId],
   );
-  const pages = useLiveQuery(
-    () => db.pages.where("notebookId").equals(notebookId).sortBy("order"),
-    [notebookId],
-  );
+  const pages = useQuery(() => repository.listPages(notebookId), [notebookId]);
   const [loaded, setLoaded] = useState<{
     page: NotePage;
     content: PageContent;
@@ -107,7 +103,7 @@ export function Editor({
     setError("");
     setLoaded(null);
     void Promise.all([
-      db.pages.get(selectedId),
+      repository.getPage(selectedId),
       repository.loadContent(selectedId),
     ])
       .then(async ([page, content]) => {
@@ -211,17 +207,21 @@ export function Editor({
         <div className={`save-status ${status}`} role="status">
           {status === "saving" ? (
             <Loader2 size={14} className="spin" />
+          ) : status === "unsaved" ? (
+            <span className="unsaved-dot" aria-hidden />
           ) : status === "error" ? (
             <AlertCircle size={14} />
           ) : (
             <Check size={14} />
           )}
           <span>
-            {status === "saving"
-              ? "Saving…"
-              : status === "error"
-                ? "Save failed"
-                : "All changes saved"}
+            {status === "unsaved"
+              ? "Unsaved changes"
+              : status === "saving"
+                ? "Saving…"
+                : status === "error"
+                  ? "Save failed"
+                  : "All changes saved"}
           </span>
           {status === "error" && (
             <button className="text-button" onClick={() => void perform(flush)}>
@@ -236,8 +236,9 @@ export function Editor({
               void perform(async () => {
                 if (!actions.current)
                   throw new Error("The editor is still loading.");
-                await actions.current.export(format);
-              }, "Your export is ready");
+                if (await actions.current.export(format))
+                  notify("Your export is ready");
+              });
             }}
           />
           <button

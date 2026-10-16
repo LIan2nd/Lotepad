@@ -51,7 +51,7 @@ import { useApp } from "../../stores/app";
 import type { NotePage, PageContent } from "../../types";
 export interface CanvasActions {
   flush: () => Promise<void>;
-  export: (format: "png" | "svg" | "json") => Promise<void>;
+  export: (format: "png" | "svg" | "json") => Promise<boolean>;
   openLibrary: (category?: CreativeCategory) => void;
   inspire: () => void;
 }
@@ -173,7 +173,15 @@ export function Canvas({
       },
       inspire: () => setComposition("inspire"),
       export: async (format) => {
-        await autosave.flush();
+        try {
+          await autosave.flush();
+        } catch (error) {
+          if (format !== "json") throw error;
+          notify(
+            "Exporting the pending scene. Database saving still needs attention.",
+            true,
+          );
+        }
         const elements = api.getSceneElements();
         const files = api.getFiles();
         const appState = {
@@ -183,13 +191,12 @@ export function Canvas({
         };
         const name = page.title.replace(/[<>:"/\\|?*]/g, "_");
         if (format === "json") {
-          download(
+          return download(
             new Blob([serializeAsJSON(elements, appState, files, "local")], {
               type: "application/json",
             }),
             `${name}.excalidraw`,
           );
-          return;
         }
         if (!elements.length)
           throw new Error("Add something to your page before exporting.");
@@ -200,7 +207,7 @@ export function Canvas({
             appState,
             exportPadding: 20,
           });
-          download(
+          return download(
             new Blob([svg.outerHTML], { type: "image/svg+xml" }),
             `${name}.svg`,
           );
@@ -213,12 +220,12 @@ export function Canvas({
             exportPadding: 20,
           });
           if (!blob) throw new Error("Image export failed.");
-          download(blob, `${name}.png`);
+          return download(blob, `${name}.png`);
         }
       },
     });
     return () => onActions(null);
-  }, [api, autosave, onActions, page.title, onModeChange]);
+  }, [api, autosave, onActions, page.title, onModeChange, notify]);
   const onChange: ExcalidrawProps["onChange"] = (elements, state, files) => {
     const selection = Object.keys(state.selectedElementIds)
       .filter((id) => state.selectedElementIds[id])

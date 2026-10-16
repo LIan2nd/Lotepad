@@ -7,3 +7,10 @@ public/fonts/
 *.tsbuildinfo
 *.local
 *.log
+src-tauri/target/
+src-tauri/gen/
+dist-desktop/
+*.db
+*.db-wal
+*.db-shm
+artifacts/

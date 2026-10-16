@@ -16,6 +16,7 @@ import {
   exportBackup,
   importBackup,
   readBackup,
+  exportMigration,
 } from "../../lib/backup";
 import {
   defaultSettings,
@@ -26,14 +27,18 @@ import {
 } from "../../types";
 import { useApp } from "../../stores/app";
 import { Select } from "../../components/Select";
+import { isDesktop } from "../../lib/desktop/runtime";
+import { DesktopStorage } from "./DesktopStorage";
 export function Settings({
   onClose,
   onSettingsChange,
   onBeforeRestore,
+  onBeforeBackup,
 }: {
   onClose: () => void;
   onSettingsChange: (settings: AppSettings) => void;
   onBeforeRestore: () => Promise<void>;
+  onBeforeBackup: () => Promise<void>;
 }) {
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [usage, setUsage] = useState("Checking storage…");
@@ -47,7 +52,7 @@ export function Settings({
       .settings()
       .then(setSettings)
       .catch((e) => notify(errorMessage(e), true));
-    if (navigator.storage?.estimate)
+    if (!isDesktop && navigator.storage?.estimate)
       void navigator.storage
         .estimate()
         .then((s) =>
@@ -168,88 +173,118 @@ export function Settings({
               </label>
             </div>
           </section>
-          <section>
-            <h3>Data & backups</h3>
-            <p>
-              Complete ZIP backups include notebooks, pages, drawings, and
-              images.
-            </p>
-            <div className="backup-buttons">
-              <button
-                className="button secondary"
-                disabled={busy}
-                onClick={() => {
-                  setBusy(true);
-                  void perform(
-                    async () =>
-                      download(
-                        await exportBackup(),
-                        `lotepad-backup-${new Date().toISOString().slice(0, 10)}.zip`,
-                      ),
-                    "Backup exported",
-                  ).finally(() => setBusy(false));
-                }}
-              >
-                <Download size={17} />
-                Export backup
-              </button>
-              <button
-                className="button secondary"
-                disabled={busy}
-                onClick={() => file.current?.click()}
-              >
-                <Upload size={17} />
-                Import backup
-              </button>
-            </div>
-            <input
-              ref={file}
-              type="file"
-              accept=".zip"
-              hidden
-              onChange={(e) => {
-                const selected = e.target.files?.[0];
-                e.target.value = "";
-                if (selected) {
-                  setBusy(true);
-                  void readBackup(selected)
-                    .then(setImportData)
-                    .catch((e) => notify(errorMessage(e), true))
-                    .finally(() => setBusy(false));
-                }
+          {isDesktop ? (
+            <DesktopStorage
+              onBeforeBackup={onBeforeBackup}
+              onBeforeRestore={onBeforeRestore}
+              onSettingsChange={(next) => {
+                setSettings(next);
+                onSettingsChange(next);
               }}
             />
-            <div className="storage-info">
-              <HardDrive size={17} />
-              {usage}
-              <button
-                className="text-button"
-                onClick={() =>
-                  void perform(async () => {
-                    const granted = await navigator.storage?.persist?.();
-                    notify(
-                      granted
-                        ? "Persistent storage enabled."
-                        : "Your browser manages storage persistence automatically.",
+          ) : (
+            <section>
+              <h3>Data & backups</h3>
+              <p>
+                Complete ZIP backups include notebooks, pages, drawings, and
+                images.
+              </p>
+              <div className="backup-buttons">
+                <button
+                  className="button secondary"
+                  disabled={busy}
+                  onClick={() => {
+                    setBusy(true);
+                    void perform(async () => {
+                      await onBeforeBackup();
+                      await download(
+                        await exportMigration(),
+                        `lotepad-migration-${new Date().toISOString().replaceAll(":", "-")}.zip`,
+                      );
+                    }, "Desktop migration archive exported").finally(() =>
+                      setBusy(false),
                     );
-                  })
-                }
-              >
-                Protect storage
-              </button>
-            </div>
-            <p className="storage-note">
-              Your notes live in this browser. Clearing site data removes them.
-              Keep a backup somewhere safe.
-            </p>
-          </section>
+                  }}
+                >
+                  <Download size={17} />
+                  Export for Lotepad Desktop
+                </button>
+                <button
+                  className="button secondary"
+                  disabled={busy}
+                  onClick={() => {
+                    setBusy(true);
+                    void perform(
+                      async () =>
+                        await download(
+                          await exportBackup(),
+                          `lotepad-backup-${new Date().toISOString().slice(0, 10)}.zip`,
+                        ),
+                      "Backup exported",
+                    ).finally(() => setBusy(false));
+                  }}
+                >
+                  <Download size={17} />
+                  Export backup
+                </button>
+                <button
+                  className="button secondary"
+                  disabled={busy}
+                  onClick={() => file.current?.click()}
+                >
+                  <Upload size={17} />
+                  Import backup
+                </button>
+              </div>
+              <input
+                ref={file}
+                type="file"
+                accept=".zip"
+                hidden
+                onChange={(e) => {
+                  const selected = e.target.files?.[0];
+                  e.target.value = "";
+                  if (selected) {
+                    setBusy(true);
+                    void readBackup(selected)
+                      .then(setImportData)
+                      .catch((e) => notify(errorMessage(e), true))
+                      .finally(() => setBusy(false));
+                  }
+                }}
+              />
+              <div className="storage-info">
+                <HardDrive size={17} />
+                {usage}
+                <button
+                  className="text-button"
+                  onClick={() =>
+                    void perform(async () => {
+                      const granted = await navigator.storage?.persist?.();
+                      notify(
+                        granted
+                          ? "Persistent storage enabled."
+                          : "Your browser manages storage persistence automatically.",
+                      );
+                    })
+                  }
+                >
+                  Protect storage
+                </button>
+              </div>
+              <p className="storage-note">
+                Your notes live in this browser. Clearing site data removes
+                them. Keep a backup somewhere safe.
+              </p>
+            </section>
+          )}
           <section className="about">
             <div className="about-logo">
               <BookOpen size={23} />
             </div>
             <div>
               <h3>
-                Lotepad <span>v1.1.0</span>
+                Lotepad <span>v1.2.0{isDesktop ? " Desktop" : ""}</span>
               </h3>
               <p>Your Creative Little Universe</p>
             </div>

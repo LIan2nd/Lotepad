@@ -6,6 +6,9 @@ export default tseslint.config(
   {
     ignores: [
       "dist",
+      "dist-desktop",
+      "src-tauri/target",
+      "src-tauri/gen",
       "node_modules",
       "public/fonts",
       "playwright-report",
